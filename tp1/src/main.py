@@ -148,7 +148,7 @@ class BlackjackLearn(object):
         rewards = list()
         for _ in range(self.max_iter):
             reward = self.run_iteration()
-            rewards.append(np.sum(reward))
+            rewards.append(np.sum(list(map(lambda x: x.value, reward))))
 
         return rewards
 
