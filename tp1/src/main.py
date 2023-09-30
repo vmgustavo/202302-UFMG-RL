@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from typing import Callable
 from itertools import product
@@ -5,6 +6,12 @@ from dataclasses import dataclass
 
 import gymnasium
 import numpy as np
+
+logging.basicConfig(
+    format='%(asctime)s | %(levelname)-8s | %(name)s : %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    level=logging.INFO,
+)
 
 
 class Action(Enum):
@@ -114,7 +121,6 @@ class BlackjackLearn(object):
         self.rewards = list()
 
     def run_iteration(self):
-        # starting point
         observation, info = self.env.reset()
         state = State(*observation)
         action = self.policy(self.qtable.get(state))
@@ -131,7 +137,7 @@ class BlackjackLearn(object):
 
             state = State(*observation)
             action = self.policy(self.qtable.get(state))
-            rewards.append(reward)
+            rewards.append(Reward.from_env(reward))
 
             if terminated or truncated:
                 break
@@ -141,7 +147,8 @@ class BlackjackLearn(object):
     def run_episode(self):
         rewards = list()
         for _ in range(self.max_iter):
-            self.run_iteration()
+            reward = self.run_iteration()
+            rewards.append(np.sum(reward))
 
         return rewards
 
@@ -154,6 +161,8 @@ class BlackjackLearn(object):
 
 
 def main():
+    logger = logging.getLogger('main')
+
     learner = BlackjackLearn(
         max_iter=32, max_actions=32,
         policy=lambda x: eps_greedy(values=x, eps=0.5),
@@ -161,7 +170,11 @@ def main():
     )
 
     n_eps = 2000
-    rewards = [learner.learn() for _ in range(n_eps)]
+    rewards = list()
+    for i in range(n_eps):
+        reward = learner.run_episode()
+        rewards.append(reward)
+        logger.info(f'iteration {i} : reward {reward}')
 
 
 if __name__ == '__main__':
