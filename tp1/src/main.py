@@ -11,6 +11,10 @@ class Action(Enum):
     STICK: int = 0
     HIT: int = 1
 
+    @classmethod
+    def mapper(cls, value: [int, float]):
+        return {0: cls.STICK, 1: cls.HIT}[int(value)]
+
 
 class Reward(Enum):
     WIN: int = +1
@@ -42,15 +46,19 @@ class State:
     CARDV: int
     ACE: int
 
+    def __post_init__(self):
+        if self.CSUM > 21:
+            self.CSUM = 22
 
-def eps_greedy(values, eps: float):
-    action_best = values.argmax()
+
+def eps_greedy(values, eps: float) -> Action:
+    action_best = np.argmax(values)
 
     p1 = 1.0 - eps + eps / len(Action)
     p2 = eps / len(Action)
     prob = [p1 if a == action_best else p2 for a in range(len(Action))]
 
-    return np.random.choice(len(Action), p=np.array(prob))
+    return Action.mapper(np.random.choice(len(Action), p=np.array(prob)))
 
 
 class BlackjackQTable:
@@ -60,7 +68,7 @@ class BlackjackQTable:
         self.alpha = alpha
         self.gamma = gamma
 
-        n_csum = 22
+        n_csum = 23
         n_cardv = 12
         n_ace = 2
         n_actions = len(Action)
@@ -76,17 +84,18 @@ class BlackjackQTable:
         else:
             raise ValueError(f'init value {init} is not defined')
 
-    def get(self, state: State, policy: Callable):
-        values = self.table_[state.CARDV, state.CSUM, state.ACE, :]
-        return policy(values)
+        return self
 
-    def update(self, statec: State, staten: State, action: Action, reward: Reward):
-        self.table_[statec.CARDV, statec.CSUM, statec.ACE, action.value] = (
-            self.table_[statec.CARDV, statec.CSUM, statec.ACE, action.value]
+    def get(self, state: State) -> np.ndarray:
+        return self.table_[state.CSUM, state.CARDV, state.ACE, :]
+
+    def update(self, statec: State, staten: State, action: Action, reward: Reward) -> None:
+        self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value] = (
+            self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value]
             + self.alpha * (
                 reward.value
-                + self.gamma * self.table_[staten.CARDV, statec.CSUM, statec.ACE, :].max()
-                - self.table_[statec.CARDV, statec.CSUM, statec.ACE, action.value]
+                + self.gamma * self.table_[staten.CSUM, statec.CARDV, statec.ACE, :].max()
+                - self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value]
             )
         )
 
@@ -104,19 +113,14 @@ class BlackjackLearn(object):
 
         self.rewards = list()
 
-    def qlearn(self, state: State):
-        action = self.policy(state)
-        [Sl, R, done, _] = self.env.step(action.value)
-        self.qtable[state.CSUM][state.CARDV] = self.qtable[S, A] + self.alpha * (R + self.gamma * self.Q[Sl, :].max() - self.Q[S, A])
-        return Sl, R, done
-
     def run_iteration(self):
         # starting point
         observation, info = self.env.reset()
         state = State(*observation)
-        action = self.policy(state)
+        action = self.policy(self.qtable.get(state))
 
-        for _ in range(self.max_actions):
+        rewards = list()
+        for _ in range(self.max_iter):
             observation, reward, terminated, truncated, _ = self.env.step(action.value)
             self.qtable.update(
                 statec=state,
@@ -125,12 +129,14 @@ class BlackjackLearn(object):
                 reward=Reward.from_env(reward),
             )
 
-        for _ in range(max_iter):
-            Sl, R, done = self.qlearning(S)
-            S = Sl
-            rewards.append(R)
-            if done:
+            state = State(*observation)
+            action = self.policy(self.qtable.get(state))
+            rewards.append(reward)
+
+            if terminated or truncated:
                 break
+
+        return rewards
 
     def run_episode(self):
         rewards = list()
@@ -151,11 +157,11 @@ def main():
     learner = BlackjackLearn(
         max_iter=32, max_actions=32,
         policy=lambda x: eps_greedy(values=x, eps=0.5),
-        qtable=BlackjackQTable(gamma=0.5, alpha=0.5),
+        qtable=BlackjackQTable(gamma=0.5, alpha=0.5).set(init='zero'),
     )
 
     n_eps = 2000
-    rewards = [learner.learn() for i in range(n_eps)]
+    rewards = [learner.learn() for _ in range(n_eps)]
 
 
 if __name__ == '__main__':
