@@ -227,21 +227,29 @@ def main():
 
     qtable = BlackjackQTable(gamma=0.99, alpha=0.5).set(init='runif')
     learner = BlackjackLearn(
-        max_iter=512, max_actions=10,
+        max_iter=256, max_actions=10,
         policy=lambda x: Action.mapper(eps_greedy(values=x, eps=1E-2, nactions=len(Action))),
         qtable=qtable,
     )
 
     with plt.ion():
-        n_eps = 256
-        for i in range(n_eps):
+        n_eps = 100
+
+        file_rewards = f'episodes_{n_eps}__rewards.csv'
+        with open(file_rewards, 'w') as f:
+            f.write('')
+
+        for i in range(n_eps + 1):
             reward = learner.run_episode()
             logger.info(f'episode {i} : positive reward {len(np.where(np.array(reward) > 0)[0])}')
 
-            if i % 10 == 0:
+            with open(file_rewards, 'a') as f:
+                f.write(','.join(map(str, reward)) + '\n')
+
+            if i % 50 == 0:
                 qtable.plot(action=Action.HIT)
 
-    qtable.dump(path=f'BlackjackQTable__{n_eps}_episodes.pickle')
+    qtable.dump(path=f'episodes_{n_eps}__BlackjackQTable.pickle')
 
 
 if __name__ == '__main__':
