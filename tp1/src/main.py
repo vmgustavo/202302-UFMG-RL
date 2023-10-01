@@ -186,7 +186,6 @@ def main():
     )
 
     n_eps = 2000
-    rewards = list()
     for i in range(n_eps):
         reward = learner.run_episode()
         logger.info(f'episode {i} : +reward {len(np.where(np.array(reward) > 0)[0])}')
