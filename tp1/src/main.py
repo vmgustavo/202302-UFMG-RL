@@ -80,10 +80,11 @@ def qlearn_update(value_curr, reward_value, gamma, alpha, nextaction):
     temporal_diff = (
             reward_value
             + gamma * nextaction
+            - value_curr
     )
 
     value_new = (
-            (1 - alpha) * value_curr
+            value_curr
             + alpha * temporal_diff
     )
 
@@ -130,7 +131,7 @@ class BlackjackQTable:
         self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value] = qlearn_update(
             value_curr=self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value],
             reward_value=reward.value, gamma=self.gamma, alpha=self.alpha,
-            nextaction=self.table_[staten.CSUM, staten.CARDV, staten.ACE, :].argmax()
+            nextaction=self.table_[staten.CSUM, staten.CARDV, staten.ACE, :].max()
         )
 
         self.updates += 1
