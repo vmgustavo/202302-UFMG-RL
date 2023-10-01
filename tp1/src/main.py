@@ -1,8 +1,9 @@
 import pickle
 import logging
 from enum import Enum
+from operator import mul
 from typing import Callable
-from itertools import product
+from functools import reduce
 from dataclasses import dataclass
 
 import gymnasium
@@ -92,7 +93,7 @@ class BlackjackQTable:
         if init == 'zero':
             self.table_ = np.zeros(shape=self.shape)
         elif init == 'runif':
-            self.table_ = np.random.random(product(*self.shape)).reshape(self.shape)
+            self.table_ = np.random.random(reduce(mul, self.shape)).reshape(self.shape)
         else:
             raise ValueError(f'init value {init} is not defined')
 
@@ -192,7 +193,7 @@ class BlackjackLearn:
 def main():
     logger = logging.getLogger('main')
 
-    qtable = BlackjackQTable(gamma=0.99, alpha=0.5).set(init='zero')
+    qtable = BlackjackQTable(gamma=0.99, alpha=0.5).set(init='runif')
     learner = BlackjackLearn(
         max_iter=512, max_actions=10,
         policy=lambda x: eps_greedy(values=x, eps=1E-2),
