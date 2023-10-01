@@ -72,6 +72,8 @@ class BlackjackQTable:
     table_: np.ndarray
 
     def __init__(self, alpha: float, gamma: float):
+        self.logger = logging.getLogger('BlackjackQTable')
+
         self.alpha = alpha
         self.gamma = gamma
 
@@ -80,6 +82,8 @@ class BlackjackQTable:
         n_ace = 2
         n_actions = len(Action)
         self.shape = (n_csum, n_cardv, n_ace, n_actions)
+
+        self.updates = 0
 
     def set(self, init: str):
         assert init in {'zero', 'runif'}
@@ -106,9 +110,17 @@ class BlackjackQTable:
             )
         )
 
+        self.updates += 1
+
+        count_nonzero = np.sum(list(map(len, np.where(self.table_ > 0))))
+        self.logger.debug(f'nonzero qtable values: {count_nonzero}')
+        self.logger.debug(f'current state: {statec}')
+        self.logger.debug(f'action value: {self.table_[staten.CSUM, statec.CARDV, statec.ACE, :]}')
 
 class BlackjackLearn(object):
     def __init__(self, max_iter: int, max_actions: int, policy: Callable, qtable: BlackjackQTable):
+        self.logger = logging.getLogger('BlackjackLearn')
+
         self.max_iter = max_iter
         self.max_actions = max_actions
         self.policy = policy
@@ -126,7 +138,8 @@ class BlackjackLearn(object):
         action = self.policy(self.qtable.get(state))
 
         rewards = list()
-        for _ in range(self.max_iter):
+        for i in range(self.max_actions):
+            self.logger.debug(f'run action {i:03d}')
             observation, reward, terminated, truncated, _ = self.env.step(action.value)
             self.qtable.update(
                 statec=state,
@@ -146,14 +159,17 @@ class BlackjackLearn(object):
 
     def run_episode(self):
         rewards = list()
-        for _ in range(self.max_iter):
+        for i in range(self.max_iter):
+            self.logger.debug(f'run episode {i:05d}')
             reward = self.run_iteration()
             rewards.append(np.sum(list(map(lambda x: x.value, reward))))
 
         return rewards
 
     def learn(self):
+        self.logger.info('start learning')
         rewards = self.run_episode()
+        self.logger.debug('finish learning')
         return np.sum(np.array(rewards))
 
     def __del__(self):
@@ -173,8 +189,7 @@ def main():
     rewards = list()
     for i in range(n_eps):
         reward = learner.run_episode()
-        rewards.append(reward)
-        logger.info(f'iteration {i} : reward {reward}')
+        logger.info(f'episode {i} : +reward {len(np.where(np.array(reward) > 0)[0])}')
 
 
 if __name__ == '__main__':
