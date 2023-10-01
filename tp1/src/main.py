@@ -1,3 +1,4 @@
+import pickle
 import logging
 from enum import Enum
 from typing import Callable
@@ -117,7 +118,19 @@ class BlackjackQTable:
         self.logger.debug(f'current state: {statec}')
         self.logger.debug(f'action value: {self.table_[staten.CSUM, statec.CARDV, statec.ACE, :]}')
 
-class BlackjackLearn(object):
+    def dump(self, path: str = 'BlackjackQTable.pickle'):
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(path: str = 'BlackjackQTable.pickle'):
+        with open(path, 'wb') as f:
+            obj = pickle.load(f)
+
+        return obj
+
+
+class BlackjackLearn:
     def __init__(self, max_iter: int, max_actions: int, policy: Callable, qtable: BlackjackQTable):
         self.logger = logging.getLogger('BlackjackLearn')
 
