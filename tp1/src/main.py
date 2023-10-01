@@ -92,6 +92,7 @@ def qlearn_update(value_curr, reward_value, gamma, alpha, nextaction):
 
 class BlackjackQTable:
     table_: np.ndarray
+    ocurrences_: np.ndarray
 
     def __init__(self, alpha: float, gamma: float):
         self.logger = logging.getLogger('BlackjackQTable')
@@ -117,6 +118,8 @@ class BlackjackQTable:
         else:
             raise ValueError(f'init value {init} is not defined')
 
+        self.ocurrences_ = np.zeros(shape=self.shape)
+
         return self
 
     def get(self, state: State) -> np.ndarray:
@@ -131,6 +134,7 @@ class BlackjackQTable:
         )
 
         self.updates += 1
+        self.ocurrences_[statec.CSUM, statec.CARDV, statec.ACE, action.value] += 1
 
         count_nonzero = np.sum(list(map(len, np.where(self.table_ > 0))))
         self.logger.debug(f'nonzero qtable values: {count_nonzero}')
