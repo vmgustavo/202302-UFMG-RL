@@ -1,0 +1,10 @@
+hydra:
+  job_logging:
+    formatters:
+      simple:
+        format: '%(asctime)s | %(levelname)-8s | %(name)s : %(message)s'
+        datefmt: '%Y-%m-%d %H:%M:%S'
+    root:
+      handlers: [console]
+
+n_episodes: 1000

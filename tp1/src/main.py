@@ -4,20 +4,16 @@ from enum import Enum
 from operator import mul
 from typing import Callable
 from functools import reduce
-import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
+import hydra
 import gymnasium
 import numpy as np
 from numba import njit
+import matplotlib.pyplot as plt
+from omegaconf import DictConfig
 
 from src.utils import random_choice
-
-logging.basicConfig(
-    format='%(asctime)s | %(levelname)-8s | %(name)s : %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    level=logging.INFO,
-)
 
 
 class Action(Enum):
@@ -222,7 +218,8 @@ class BlackjackLearn:
         self.env.close()
 
 
-def main():
+@hydra.main(version_base=None, config_path='conf', config_name='blackjack')
+def main(cfg: DictConfig) -> None:
     logger = logging.getLogger('main')
 
     qtable = BlackjackQTable(gamma=0.99, alpha=0.5).set(init='runif')
@@ -233,13 +230,11 @@ def main():
     )
 
     with plt.ion():
-        n_eps = 100
-
-        file_rewards = f'episodes_{n_eps}__rewards.csv'
+        file_rewards = f'episodes_{cfg.n_episodes}__rewards.csv'
         with open(file_rewards, 'w') as f:
             f.write('')
 
-        for i in range(n_eps + 1):
+        for i in range(cfg.n_episodes + 1):
             reward = learner.run_episode()
             logger.info(f'episode {i} : positive reward {len(np.where(np.array(reward) > 0)[0])}')
 
@@ -249,7 +244,7 @@ def main():
             if i % 50 == 0:
                 qtable.plot(action=Action.HIT)
 
-    qtable.dump(path=f'episodes_{n_eps}__BlackjackQTable.pickle')
+    qtable.dump(path=f'episodes_{cfg.n_episodes}__BlackjackQTable.pickle')
 
 
 if __name__ == '__main__':
