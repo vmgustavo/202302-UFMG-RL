@@ -12,8 +12,9 @@ packages = [
 python = "~3.10"
 gymnasium = {extras = ["accept-rom-license", "atari"], version = "^0.29.1"}
 matplotlib = "^3.8.0"
-numpy = "^1.26.0"
+numpy = "<1.26"
 seaborn = "^0.13.0"
+numba = "^0.58.0"
 
 
 [tool.poetry.group.dev.dependencies]

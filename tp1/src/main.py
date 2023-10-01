@@ -8,6 +8,9 @@ from dataclasses import dataclass
 
 import gymnasium
 import numpy as np
+from numba import njit
+
+from src.utils import random_choice
 
 logging.basicConfig(
     format='%(asctime)s | %(levelname)-8s | %(name)s : %(message)s',
@@ -60,14 +63,30 @@ class State:
             self.CSUM = 22
 
 
-def eps_greedy(values, eps: float) -> Action:
+@njit
+def eps_greedy(values, eps: float, nactions: int) -> Action:
     action_best = np.argmax(values)
 
-    p1 = 1.0 - eps + eps / len(Action)
-    p2 = eps / len(Action)
-    prob = [p1 if a == action_best else p2 for a in range(len(Action))]
+    p1 = 1.0 - eps + eps / nactions
+    p2 = eps / nactions
+    prob = [p1 if a == action_best else p2 for a in range(nactions)]
 
-    return Action.mapper(np.random.choice(len(Action), p=np.array(prob)))
+    return random_choice(np.array(prob))
+
+
+@njit
+def qlearn_update(value_curr, reward_value, gamma, alpha, nextaction):
+    temporal_diff = (
+            reward_value
+            + gamma * nextaction
+    )
+
+    value_new = (
+            (1 - alpha) * value_curr
+            + alpha * temporal_diff
+    )
+
+    return value_new
 
 
 class BlackjackQTable:
@@ -76,8 +95,8 @@ class BlackjackQTable:
     def __init__(self, alpha: float, gamma: float):
         self.logger = logging.getLogger('BlackjackQTable')
 
-        self.alpha = alpha
-        self.gamma = gamma
+        self.alpha = alpha  # learning rate
+        self.gamma = gamma  # discount factor
 
         n_csum = 23
         n_cardv = 12
@@ -103,13 +122,11 @@ class BlackjackQTable:
         return self.table_[state.CSUM, state.CARDV, state.ACE, :]
 
     def update(self, statec: State, staten: State, action: Action, reward: Reward) -> None:
-        self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value] = (
-            self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value]
-            + self.alpha * (
-                reward.value
-                + self.gamma * self.table_[staten.CSUM, statec.CARDV, statec.ACE, :].max()
-                - self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value]
-            )
+
+        self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value] = qlearn_update(
+            value_curr=self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value],
+            reward_value=reward.value, gamma=self.gamma, alpha=self.alpha,
+            nextaction=self.table_[staten.CSUM, staten.CARDV, staten.ACE, :].argmax()
         )
 
         self.updates += 1
@@ -196,14 +213,14 @@ def main():
     qtable = BlackjackQTable(gamma=0.99, alpha=0.5).set(init='runif')
     learner = BlackjackLearn(
         max_iter=512, max_actions=10,
-        policy=lambda x: eps_greedy(values=x, eps=1E-2),
+        policy=lambda x: Action.mapper(eps_greedy(values=x, eps=1E-2, nactions=len(Action))),
         qtable=qtable,
     )
 
-    n_eps = 2000
+    n_eps = 256
     for i in range(n_eps):
         reward = learner.run_episode()
-        logger.info(f'episode {i} : +reward {len(np.where(np.array(reward) > 0)[0])}')
+        logger.info(f'episode {i} : positive reward {len(np.where(np.array(reward) > 0)[0])}')
 
     qtable.dump()
 
