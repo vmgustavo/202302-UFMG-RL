@@ -4,6 +4,7 @@ from enum import Enum
 from operator import mul
 from typing import Callable
 from functools import reduce
+import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
 import gymnasium
@@ -140,6 +141,15 @@ class BlackjackQTable:
         with open(path, 'wb') as f:
             pickle.dump(self, f)
 
+    def plot(self, action: Action = Action.HIT):
+        plt.gca()
+        plt.imshow(self.table_[:, :, 0, action.value])
+        plt.ylabel('Current Sum')
+        plt.xlabel('Card Value')
+
+        plt.show()
+        plt.pause(.1)
+
     @staticmethod
     def load(path: str = 'BlackjackQTable.pickle'):
         with open(path, 'rb') as f:
@@ -217,10 +227,14 @@ def main():
         qtable=qtable,
     )
 
-    n_eps = 256
-    for i in range(n_eps):
-        reward = learner.run_episode()
-        logger.info(f'episode {i} : positive reward {len(np.where(np.array(reward) > 0)[0])}')
+    with plt.ion():
+        n_eps = 256
+        for i in range(n_eps):
+            reward = learner.run_episode()
+            logger.info(f'episode {i} : positive reward {len(np.where(np.array(reward) > 0)[0])}')
+
+            if i % 10 == 0:
+                qtable.plot(action=Action.HIT)
 
     qtable.dump()
 
