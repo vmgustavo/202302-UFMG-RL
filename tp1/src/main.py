@@ -180,7 +180,7 @@ def main():
     logger = logging.getLogger('main')
 
     learner = BlackjackLearn(
-        max_iter=32, max_actions=32,
+        max_iter=512, max_actions=10,
         policy=lambda x: eps_greedy(values=x, eps=0.5),
         qtable=BlackjackQTable(gamma=0.5, alpha=0.5).set(init='zero'),
     )
