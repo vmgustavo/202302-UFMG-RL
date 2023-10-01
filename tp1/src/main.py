@@ -124,7 +124,7 @@ class BlackjackQTable:
 
     @staticmethod
     def load(path: str = 'BlackjackQTable.pickle'):
-        with open(path, 'wb') as f:
+        with open(path, 'rb') as f:
             obj = pickle.load(f)
 
         return obj
