@@ -192,16 +192,19 @@ class BlackjackLearn:
 def main():
     logger = logging.getLogger('main')
 
+    qtable = BlackjackQTable(gamma=0.5, alpha=0.5).set(init='zero')
     learner = BlackjackLearn(
         max_iter=512, max_actions=10,
         policy=lambda x: eps_greedy(values=x, eps=0.5),
-        qtable=BlackjackQTable(gamma=0.5, alpha=0.5).set(init='zero'),
+        qtable=qtable,
     )
 
     n_eps = 2000
     for i in range(n_eps):
         reward = learner.run_episode()
         logger.info(f'episode {i} : +reward {len(np.where(np.array(reward) > 0)[0])}')
+
+    qtable.dump()
 
 
 if __name__ == '__main__':
