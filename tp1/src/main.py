@@ -240,7 +240,7 @@ def main():
             if i % 10 == 0:
                 qtable.plot(action=Action.HIT)
 
-    qtable.dump()
+    qtable.dump(path=f'BlackjackQTable__{n_eps}_episodes.pickle')
 
 
 if __name__ == '__main__':
