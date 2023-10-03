@@ -7,4 +7,9 @@ hydra:
     root:
       handlers: [console]
 
-n_episodes: 1000
+n_episodes: 10
+rewardspec:
+    WIN: 5
+    WIN_NATURAL: 5
+    LOSS: -2
+    DRAW: 0

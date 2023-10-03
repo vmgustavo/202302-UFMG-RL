@@ -1,12 +1,14 @@
 import pickle
 import logging
 from enum import Enum
+from pathlib import Path
 from operator import mul
 from typing import Callable
 from functools import reduce
 from dataclasses import dataclass
 
 import hydra
+from hydra.core.hydra_config import HydraConfig
 import gymnasium
 import numpy as np
 from numba import njit
@@ -25,14 +27,14 @@ class Action(Enum):
         return {0: cls.STICK, 1: cls.HIT}[int(value)]
 
 
-class Reward(Enum):
-    WIN: int = +1
-    WIN_NATURAL: int = +2
-    LOSS: int = -1
-    DRAW: int = +0
+@dataclass(frozen=True)
+class Reward:
+    WIN: int
+    WIN_NATURAL: int
+    LOSS: int
+    DRAW: int
 
-    @classmethod
-    def from_env(cls, value: [int, float]):
+    def from_env(self, outcome: [int, float]) -> int:
         """
         win game: +1
         lose game: -1
@@ -40,13 +42,13 @@ class Reward(Enum):
         win game with natural blackjack: +1.5 (if natural is True) +1 (if natural is False)
         """
         mapper = {
-            1: cls.WIN,
-            1.5: cls.WIN_NATURAL,
-            -1: cls.LOSS,
-            0: cls.DRAW,
+            1: self.WIN,
+            1.5: self.WIN_NATURAL,
+            -1: self.LOSS,
+            0: self.DRAW,
         }
 
-        return mapper[value]
+        return mapper[outcome]
 
 
 @dataclass
@@ -111,7 +113,7 @@ class BlackjackQTable:
         if init == 'zero':
             self.table_ = np.zeros(shape=self.shape)
         elif init == 'runif':
-            self.table_ = np.random.random(reduce(mul, self.shape)).reshape(self.shape)
+            self.table_ = np.random.random(reduce(mul, self.shape)).reshape(self.shape)  # noqa
         else:
             raise ValueError(f'init value {init} is not defined')
 
@@ -122,11 +124,11 @@ class BlackjackQTable:
     def get(self, state: State) -> np.ndarray:
         return self.table_[state.CSUM, state.CARDV, state.ACE, :]
 
-    def update(self, statec: State, staten: State, action: Action, reward: Reward) -> None:
+    def update(self, statec: State, staten: State, action: Action, reward: float) -> None:
 
         self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value] = qlearn_update(
             value_curr=self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value],
-            reward_value=reward.value, gamma=self.gamma, alpha=self.alpha,
+            reward_value=reward, gamma=self.gamma, alpha=self.alpha,
             nextaction=self.table_[staten.CSUM, staten.CARDV, staten.ACE, :].max()
         )
 
@@ -138,7 +140,7 @@ class BlackjackQTable:
         self.logger.debug(f'current state: {statec}')
         self.logger.debug(f'action value: {self.table_[staten.CSUM, statec.CARDV, statec.ACE, :]}')
 
-    def dump(self, path: str = 'BlackjackQTable.pickle'):
+    def dump(self, path: [str, Path] = 'BlackjackQTable.pickle'):
         with open(path, 'wb') as f:
             pickle.dump(self, f)
 
@@ -160,13 +162,14 @@ class BlackjackQTable:
 
 
 class BlackjackLearn:
-    def __init__(self, max_iter: int, max_actions: int, policy: Callable, qtable: BlackjackQTable):
+    def __init__(self, max_iter: int, max_actions: int, policy: Callable, qtable: BlackjackQTable, rewardspec: Reward):
         self.logger = logging.getLogger('BlackjackLearn')
 
         self.max_iter = max_iter
         self.max_actions = max_actions
         self.policy = policy
         self.qtable = qtable
+        self.rewardspec = rewardspec
 
         self.env = gymnasium.make('Blackjack-v1')
         self.actions = Action
@@ -182,17 +185,17 @@ class BlackjackLearn:
         rewards = list()
         for i in range(self.max_actions):
             self.logger.debug(f'run action {i:03d}')
-            observation, reward, terminated, truncated, _ = self.env.step(action.value)
+            observation, outcome, terminated, truncated, _ = self.env.step(action.value)
             self.qtable.update(
                 statec=state,
                 staten=State(*observation),
                 action=action,
-                reward=Reward.from_env(reward),
+                reward=self.rewardspec.from_env(outcome),
             )
 
             state = State(*observation)
             action = self.policy(self.qtable.get(state))
-            rewards.append(Reward.from_env(reward))
+            rewards.append(self.rewardspec.from_env(outcome))
 
             if terminated or truncated:
                 break
@@ -204,7 +207,7 @@ class BlackjackLearn:
         for i in range(self.max_iter):
             self.logger.debug(f'run episode {i:05d}')
             reward = self.run_iteration()
-            rewards.append(np.sum(list(map(lambda x: x.value, reward))))
+            rewards.append(np.sum(reward))
 
         return rewards
 
@@ -222,15 +225,17 @@ class BlackjackLearn:
 def main(cfg: DictConfig) -> None:
     logger = logging.getLogger('main')
 
+    outdir = Path(HydraConfig.get().runtime.output_dir)
+
     qtable = BlackjackQTable(gamma=0.99, alpha=0.5).set(init='runif')
     learner = BlackjackLearn(
         max_iter=256, max_actions=10,
         policy=lambda x: Action.mapper(eps_greedy(values=x, eps=1E-2, nactions=len(Action))),
-        qtable=qtable,
+        qtable=qtable, rewardspec=Reward(**cfg.rewardspec)
     )
 
     with plt.ion():
-        file_rewards = f'episodes_{cfg.n_episodes}__rewards.csv'
+        file_rewards = outdir / f'episodes_{cfg.n_episodes}__rewards.csv'
         with open(file_rewards, 'w') as f:
             f.write('')
 
@@ -244,7 +249,7 @@ def main(cfg: DictConfig) -> None:
             if i % 50 == 0:
                 qtable.plot(action=Action.HIT)
 
-    qtable.dump(path=f'episodes_{cfg.n_episodes}__BlackjackQTable.pickle')
+    qtable.dump(path=outdir / f'episodes_{cfg.n_episodes}__BlackjackQTable.pickle')
 
 
 if __name__ == '__main__':
