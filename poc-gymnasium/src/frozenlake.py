@@ -5,8 +5,8 @@ import pandas as pd
 
 
 env = gymnasium.make("FrozenLake-v1")
-n_observations = env.observation_space.n
-n_actions = env.action_space.n
+n_observations = env.observation_space.n  # noqa
+n_actions = env.action_space.n  # noqa
 
 # Initialize the Q-table to 0
 Q_table = np.zeros((n_observations, n_actions))

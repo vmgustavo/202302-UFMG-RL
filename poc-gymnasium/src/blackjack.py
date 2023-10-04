@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 
 env = gymnasium.make("Blackjack-v1", natural=False, sab=True)
 obs_space = env.observation_space
-n_actions = env.action_space.n
+n_actions = env.action_space.n  # noqa
 
 # Initialize the Q-table to 0
-Q_table = np.zeros(tuple(elem.n for elem in obs_space) + (n_actions,))
+Q_table = np.zeros(tuple(elem.n for elem in obs_space) + (n_actions,))  # noqa
 print(Q_table)
 
 # number of episode we will run
