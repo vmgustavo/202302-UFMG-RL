@@ -57,10 +57,6 @@ class State:
     CARDV: int
     ACE: int
 
-    def __post_init__(self):
-        if self.CSUM > 21:
-            self.CSUM = 22
-
 
 @njit
 def eps_greedy(values, eps: float, nactions: int) -> Action:
@@ -74,19 +70,27 @@ def eps_greedy(values, eps: float, nactions: int) -> Action:
 
 
 @njit
-def qlearn_update(value_curr, reward_value, gamma, alpha, nextaction):
+def qlearn_update(currvalue, reward_value, gamma, alpha, next_best_action):
     temporal_diff = (
             reward_value
-            + gamma * nextaction
-            - value_curr
+            + gamma * next_best_action
+            - currvalue
     )
 
     value_new = (
-            value_curr
+            currvalue
             + alpha * temporal_diff
     )
 
     return value_new
+
+
+# @njit
+# def qlearn_update(currvalue: float, reward_value: float, gamma: float, alpha: float, next_best_action: float):
+#     return (
+#         (1 - alpha) * currvalue
+#         + alpha * (reward_value + gamma * next_best_action)
+#     )
 
 
 class BlackjackQTable:
@@ -99,7 +103,7 @@ class BlackjackQTable:
         self.alpha = alpha  # learning rate
         self.gamma = gamma  # discount factor
 
-        n_csum = 23
+        n_csum = 32
         n_cardv = 12
         n_ace = 2
         n_actions = len(Action)
@@ -124,21 +128,21 @@ class BlackjackQTable:
     def get(self, state: State) -> np.ndarray:
         return self.table_[state.CSUM, state.CARDV, state.ACE, :]
 
-    def update(self, statec: State, staten: State, action: Action, reward: float) -> None:
+    def update(self, c_state: State, n_state: State, c_action: Action, reward: float) -> None:
 
-        self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value] = qlearn_update(
-            value_curr=self.table_[statec.CSUM, statec.CARDV, statec.ACE, action.value],
+        self.table_[c_state.CSUM, c_state.CARDV, c_state.ACE, c_action.value] = qlearn_update(
+            currvalue=self.table_[c_state.CSUM, c_state.CARDV, c_state.ACE, c_action.value],
             reward_value=reward, gamma=self.gamma, alpha=self.alpha,
-            nextaction=self.table_[staten.CSUM, staten.CARDV, staten.ACE, :].max()
+            next_best_action=self.table_[n_state.CSUM, n_state.CARDV, n_state.ACE, :].max()
         )
 
         self.updates += 1
-        self.ocurrences_[statec.CSUM, statec.CARDV, statec.ACE, action.value] += 1
+        self.ocurrences_[c_state.CSUM, c_state.CARDV, c_state.ACE, c_action.value] += 1
 
         count_nonzero = np.sum(list(map(len, np.where(self.table_ > 0))))
         self.logger.debug(f'nonzero qtable values: {count_nonzero}')
-        self.logger.debug(f'current state: {statec}')
-        self.logger.debug(f'action value: {self.table_[staten.CSUM, statec.CARDV, statec.ACE, :]}')
+        self.logger.debug(f'current state: {c_state}')
+        self.logger.debug(f'action value: {self.table_[n_state.CSUM, c_state.CARDV, c_state.ACE, :]}')
 
     def dump(self, path: [str, Path] = 'BlackjackQTable.pickle'):
         with open(path, 'wb') as f:
@@ -162,60 +166,44 @@ class BlackjackQTable:
 
 
 class BlackjackLearn:
-    def __init__(self, max_iter: int, max_actions: int, policy: Callable, qtable: BlackjackQTable, rewardspec: Reward):
+    def __init__(self, max_iter: int, policy: Callable, qtable: BlackjackQTable, rewardspec: Reward):
         self.logger = logging.getLogger('BlackjackLearn')
 
         self.max_iter = max_iter
-        self.max_actions = max_actions
         self.policy = policy
         self.qtable = qtable
         self.rewardspec = rewardspec
 
-        self.env = gymnasium.make('Blackjack-v1')
+        self.env = gymnasium.make('Blackjack-v1', natural=False, sab=True)
         self.actions = Action
         self.states = State
 
         self.rewards = list()
 
-    def run_iteration(self):
-        observation, info = self.env.reset()
-        state = State(*observation)
-        action = self.policy(self.qtable.get(state))
+    def run_episode(self):
+        c_observation, info = self.env.reset()
+        c_state = State(*c_observation)
 
-        rewards = list()
-        for i in range(self.max_actions):
-            self.logger.debug(f'run action {i:03d}')
-            observation, outcome, terminated, truncated, _ = self.env.step(action.value)
+        reward_episode_total = 0
+        for i in range(self.max_iter):
+            c_action = self.policy(self.qtable.get(c_state))
+
+            n_observation, c_outcome, terminated, truncated, _ = self.env.step(c_action.value)
             self.qtable.update(
-                statec=state,
-                staten=State(*observation),
-                action=action,
-                reward=self.rewardspec.from_env(outcome),
+                c_state=c_state,
+                n_state=State(*n_observation),
+                c_action=c_action,
+                reward=self.rewardspec.from_env(c_outcome),
             )
 
-            state = State(*observation)
-            action = self.policy(self.qtable.get(state))
-            rewards.append(self.rewardspec.from_env(outcome))
+            c_state = State(*n_observation)
+
+            reward_episode_total += self.rewardspec.from_env(c_outcome)
 
             if terminated or truncated:
                 break
 
-        return rewards
-
-    def run_episode(self):
-        rewards = list()
-        for i in range(self.max_iter):
-            self.logger.debug(f'run episode {i:05d}')
-            reward = self.run_iteration()
-            rewards.append(np.sum(reward))
-
-        return rewards
-
-    def learn(self):
-        self.logger.info('start learning')
-        rewards = self.run_episode()
-        self.logger.debug('finish learning')
-        return np.sum(np.array(rewards))
+        return reward_episode_total
 
     def __del__(self):
         self.env.close()
@@ -227,24 +215,23 @@ def main(cfg: DictConfig) -> None:
 
     outdir = Path(HydraConfig.get().runtime.output_dir)
 
-    qtable = BlackjackQTable(gamma=0.99, alpha=0.5).set(init='runif')
+    qtable = BlackjackQTable(gamma=0.99, alpha=0.1).set(init='runif')
     learner = BlackjackLearn(
-        max_iter=256, max_actions=10,
+        max_iter=8,
         policy=lambda x: Action.mapper(eps_greedy(values=x, eps=1E-2, nactions=len(Action))),
         qtable=qtable, rewardspec=Reward(**cfg.rewardspec)
     )
 
     with plt.ion():
-        file_rewards = outdir / f'episodes_{cfg.n_episodes}__rewards.csv'
-        with open(file_rewards, 'w') as f:
+        rewards_file = outdir / f'episodes_{cfg.n_episodes}__rewards.csv'
+        with open(rewards_file, 'w') as f:
             f.write('')
 
+        rewards_episode = list()
         for i in range(cfg.n_episodes + 1):
             reward = learner.run_episode()
-            logger.info(f'episode {i} : positive reward {len(np.where(np.array(reward) > 0)[0])}')
-
-            with open(file_rewards, 'a') as f:
-                f.write(','.join(map(str, reward)) + '\n')
+            rewards_episode.append(reward)
+            logger.info(f'episode {i} : episode reward {reward}')
 
             if i % 50 == 0:
                 qtable.plot(action=Action.HIT)

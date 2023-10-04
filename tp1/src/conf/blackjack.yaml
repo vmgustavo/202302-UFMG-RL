@@ -1,4 +1,5 @@
 hydra:
+  verbose: false
   job_logging:
     formatters:
       simple:
@@ -9,9 +10,9 @@ hydra:
   run:
     dir: ../outputs/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
 
-n_episodes: 10
+n_episodes: 10000
 rewardspec:
-    WIN: 5
-    WIN_NATURAL: 5
-    LOSS: -2
+    WIN: 2
+    WIN_NATURAL: 2
+    LOSS: -1
     DRAW: 0
