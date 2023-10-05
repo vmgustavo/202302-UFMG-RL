@@ -223,10 +223,6 @@ def main(cfg: DictConfig) -> None:
     )
 
     with plt.ion():
-        rewards_file = outdir / f'episodes_{cfg.n_episodes}__rewards.csv'
-        with open(rewards_file, 'w') as f:
-            f.write('')
-
         rewards_episode = list()
         for i in range(cfg.n_episodes + 1):
             reward = learner.run_episode()
@@ -235,6 +231,9 @@ def main(cfg: DictConfig) -> None:
 
             if i % 50 == 0:
                 qtable.plot(action=Action.HIT)
+
+        with open(outdir / f'episodes_{cfg.n_episodes}__rewards.csv', 'w') as f:
+            f.writelines([f'{elem}\n' for elem in rewards_episode])
 
     qtable.dump(path=outdir / f'episodes_{cfg.n_episodes}__BlackjackQTable.pickle')
 
