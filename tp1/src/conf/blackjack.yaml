@@ -10,9 +10,13 @@ hydra:
   run:
     dir: ../outputs/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
 
-n_episodes: 50000
+n_episodes: 5000
 rewardspec:
     WIN: 2
     WIN_NATURAL: 2.5
     LOSS: -2
     DRAW: 1
+
+interactive:
+    plot: True
+    step: 50

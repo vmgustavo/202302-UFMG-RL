@@ -1,6 +1,5 @@
 import logging
 from enum import Enum
-from typing import Callable
 from dataclasses import dataclass
 
 import gymnasium
@@ -8,7 +7,6 @@ import numpy as np
 from numba import njit
 
 from src.utils import random_choice
-# from src.qlearning import BlackjackQTable
 
 
 class Action(Enum):
@@ -24,7 +22,7 @@ class Action(Enum):
 class State:
     CSUM: int
     CARDV: int
-    ACE: int    
+    ACE: int
 
 
 @dataclass(frozen=True)
@@ -49,7 +47,7 @@ class Reward:
         }
 
         return mapper[outcome]
-    
+
 
 @njit
 def eps_greedy(values, eps: float, nactions: int) -> Action:
@@ -105,6 +103,3 @@ class BlackjackLearn:
     def __del__(self):
         self.env.close()
 
-
-if __name__=="__main__":
-    pass
