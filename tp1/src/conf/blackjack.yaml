@@ -9,6 +9,8 @@ hydra:
       handlers: [console]
   run:
     dir: ../outputs/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
+  sweep:
+    dir: ../sweep/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
 
 n_episodes: 5000
 
