@@ -45,7 +45,7 @@ def main(cfg: DictConfig) -> None:
             rewards_episode.append(reward)
             logger.info(f'episode {i} : episode reward {reward}')
 
-            if i % cfg.interactive.step == 0:
+            if cfg.interactive.plot and (i % cfg.interactive.step) == 0:
                 qtable.plot(action=Action.HIT)
 
         with open(outdir / f'blackjack__rewards.csv', 'w') as f:
@@ -53,11 +53,10 @@ def main(cfg: DictConfig) -> None:
 
     qtable.dump(path=outdir / 'blackjack__qtable_values.pickle')
 
-    if cfg.interactive.plot:
-        qtable.plot(
-            action=Action.HIT,
-            savefig_path=outdir / f'blackjack__qtable__plot_{Action.HIT}.png'
-        )
+    qtable.plot(
+        action=Action.HIT,
+        savefig_path=outdir / f'blackjack__qtable__plot_{Action.HIT}.png'
+    )
 
 
 if __name__ == '__main__':

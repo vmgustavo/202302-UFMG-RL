@@ -18,5 +18,5 @@ rewardspec:
     DRAW: 1
 
 interactive:
-    plot: True
+    plot: False
     step: 50
