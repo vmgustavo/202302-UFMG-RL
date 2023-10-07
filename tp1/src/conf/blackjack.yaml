@@ -16,3 +16,6 @@ rewardspec:
     WIN_NATURAL: 2.5
     LOSS: -2
     DRAW: 1
+
+interactive:
+    plot: True

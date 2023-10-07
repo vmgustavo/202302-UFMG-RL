@@ -4,7 +4,6 @@ from pathlib import Path
 from operator import mul
 from functools import reduce
 
-from hydra.core.hydra_config import HydraConfig
 import numpy as np
 from numba import njit
 import matplotlib.pyplot as plt
@@ -28,19 +27,11 @@ def qlearn_update(currvalue, reward_value, gamma, alpha, next_best_action):
     return value_new
 
 
-# @njit
-# def qlearn_update(currvalue: float, reward_value: float, gamma: float, alpha: float, next_best_action: float):
-#     return (
-#         (1 - alpha) * currvalue
-#         + alpha * (reward_value + gamma * next_best_action)
-#     )
-
-
 class BlackjackQTable:
     table_: np.ndarray
     ocurrences_: np.ndarray
 
-    def __init__(self, alpha: float, gamma: float, shape: int):
+    def __init__(self, alpha: float, gamma: float, shape: tuple[int, int, int, int]):
         self.logger = logging.getLogger('BlackjackQTable')
 
         self.alpha = alpha  # learning rate
@@ -108,5 +99,3 @@ class BlackjackQTable:
 
         return obj
 
-if __name__=="__main__":
-    pass
