@@ -17,6 +17,9 @@ class Action(Enum):
     def mapper(cls, value: [int, float]):
         return {0: cls.STICK, 1: cls.HIT}[int(value)]
 
+    def __str__(self):
+        return self.name.lower()
+
 
 @dataclass
 class State:
