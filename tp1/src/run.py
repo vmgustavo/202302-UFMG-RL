@@ -11,7 +11,7 @@ from src.blackjack import BlackjackLearn, Reward, Action
 
 
 @hydra.main(version_base=None, config_path='conf', config_name='blackjack')
-def main(cfg: DictConfig) -> None:
+def run(cfg: DictConfig) -> None:
     logger = logging.getLogger('main')
 
     outdir = Path(HydraConfig.get().runtime.output_dir)
@@ -60,4 +60,4 @@ def main(cfg: DictConfig) -> None:
 
 
 if __name__ == '__main__':
-    main()
+    run()
