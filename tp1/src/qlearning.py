@@ -95,4 +95,3 @@ class BlackjackQTable:
             obj = pickle.load(f)
 
         return obj
-

@@ -102,4 +102,3 @@ class BlackjackLearn:
 
     def __del__(self):
         self.env.close()
-
