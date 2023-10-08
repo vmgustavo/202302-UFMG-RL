@@ -15,6 +15,7 @@ def run(cfg: DictConfig) -> None:
     logger = logging.getLogger('main')
 
     outdir = Path(HydraConfig.get().runtime.output_dir)
+    logger.info(f'start execution : {outdir}')
 
     qtable = (
         BlackjackQTable(
@@ -44,7 +45,7 @@ def run(cfg: DictConfig) -> None:
     for i in range(cfg.n_episodes):
         reward = learner.run_episode()
         rewards_episode.append(reward)
-        logger.info(
+        logger.debug(
             f'episode {i}'
             + f' : sum 50 episodes reward {sum(rewards_episode[-50:-1])}'
         )
@@ -59,11 +60,6 @@ def run(cfg: DictConfig) -> None:
         f.writelines([f'{elem}\n' for elem in rewards_episode])
 
     qtable.dump(path=outdir / 'blackjack__qtable_values.pickle')
-
-    qtable.plot(
-        action=Action.HIT,
-        savefig_path=outdir / f'blackjack__qtable__plot_{Action.HIT}.png'
-    )
 
 
 if __name__ == '__main__':
