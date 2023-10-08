@@ -12,6 +12,7 @@ hydra:
   sweep:
     dir: ../sweep/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
 
+n_observations: 1
 n_episodes: 5000
 
 rewardspec:
