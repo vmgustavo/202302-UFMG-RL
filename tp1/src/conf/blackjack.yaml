@@ -16,10 +16,10 @@ n_observations: 1
 n_episodes: 50000
 
 rewardspec:
-    WIN: 1
-    WIN_NATURAL: 1.5
-    LOSS: -1
-    DRAW: 0
+    WIN: 2
+    WIN_NATURAL: 2.5
+    LOSS: -2
+    DRAW: 1
 
 qtable:
     gamma: 0.0
