@@ -13,7 +13,7 @@ hydra:
     dir: ../sweep/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
 
 n_observations: 1
-n_episodes: 5000
+n_episodes: 50000
 
 rewardspec:
     WIN: 2
@@ -22,7 +22,7 @@ rewardspec:
     DRAW: 1
 
 qtable:
-    gamma: 0.99
+    gamma: 0.0
     alpha: 0.1
     init: 'zero'
 
