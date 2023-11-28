@@ -188,3 +188,4 @@ pyrightconfig.json
 
 outputs/
 sweep/
+*.png
