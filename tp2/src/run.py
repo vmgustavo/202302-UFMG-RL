@@ -1,11 +1,12 @@
 """https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html"""
-import gymnasium as gym
 import math
 import random
+from itertools import count
+from collections import namedtuple, deque
+
 import matplotlib
 import matplotlib.pyplot as plt
-from collections import namedtuple, deque
-from itertools import count
+import gymnasium as gym
 
 import torch
 import torch.nn as nn
