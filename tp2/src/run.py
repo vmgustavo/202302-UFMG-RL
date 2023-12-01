@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as f
 
-env = gym.make("CartPole-v1")
+env = gym.make('CartPole-v1')
 
 # set up matplotlib
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -22,7 +22,7 @@ if is_ipython:
 plt.ion()
 
 # if GPU is to be used
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 Transition = namedtuple(
