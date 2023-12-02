@@ -215,11 +215,11 @@ def main(cfg: DictConfig):
             n_points = 300
             plt.clf()
             plt.plot(
-                range(min(i_episode, n_points) + 1),
+                range(min(i_episode + 1, n_points)),
                 episode_durations[-n_points:]
             )
             plt.plot(
-                range(min(i_episode, n_points) + 1),
+                range(min(i_episode + 1, n_points)),
                 (
                     pd.Series(episode_durations)
                     .rolling(window=50, min_periods=1)
