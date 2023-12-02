@@ -139,7 +139,7 @@ def main(cfg: DictConfig):
         plt.figure(figsize=(12, 5))
 
     i_episode = 0
-    while np.mean(episode_durations[-50:]) < 450:
+    while (i_episode < cfg.n_episodes) and (np.mean(episode_durations[-50:]) < 450):
         i_episode += 1
         # Initialize the environment and get it's state
         state, info = env.reset()
