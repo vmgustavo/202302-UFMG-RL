@@ -202,12 +202,11 @@ def main(cfg: DictConfig):
             if terminated or truncated:
                 episode_durations.append(t + 1)
                 rewards_episodes.append(np.sum(rewards_iterations))
-                # plot_durations()
                 break
 
         logger.debug(
             f'episode {i_episode}'
-            + f' : sum 50 episodes reward {sum(rewards_episodes[-50:-1])}'
+            + f' : sum 50 episodes reward {sum(rewards_episodes[-50:-1]):.02f}'
         )
 
         if cfg.interactive.plot and (i_episode % cfg.interactive.step) == 0:
