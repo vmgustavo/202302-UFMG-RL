@@ -144,12 +144,12 @@ def main():
             steps_done += 1
             if sample > eps_threshold:
                 with torch.no_grad():
-                    action = policy_net(state).max(1).indices.view(1, 1)
+                    action = float(policy_net(state).max(1).indices.view(1, 1).item())
             else:
-                action = torch.tensor([[env.action_space.sample()]], device=device, dtype=torch.long)
+                action = float(env.action_space.sample()[0])
 
             # Act on environment
-            observation, reward, terminated, truncated, _ = env.step(action.item())
+            observation, reward, terminated, truncated, _ = env.step((action,))
             reward = torch.tensor([reward], device=device)
 
             # Evaluate action return
