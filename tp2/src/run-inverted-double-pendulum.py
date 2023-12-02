@@ -1,6 +1,8 @@
 import math
+import json
 import random
 import logging
+import hashlib
 from pathlib import Path
 from itertools import count
 from collections import namedtuple, deque
@@ -12,7 +14,7 @@ import matplotlib.pyplot as plt
 
 import hydra
 from hydra.core.hydra_config import HydraConfig
-from omegaconf import DictConfig
+from omegaconf import OmegaConf, DictConfig
 
 import gymnasium as gym
 
@@ -111,7 +113,9 @@ def optimize_model(policy_net, target_net, memory, optimizer, batch_size, gamma)
 
 @hydra.main(version_base=None, config_path='conf', config_name='inverted-double-pendulum')
 def main(cfg: DictConfig):
-    logger = logging.getLogger('main')
+    cbytes = json.dumps(OmegaConf.to_container(cfg, resolve=True)).encode()
+    chash = hashlib.sha256(cbytes).hexdigest()
+    logger = logging.getLogger(chash[:7])
 
     outdir = Path(HydraConfig.get().runtime.output_dir)
     logger.info(f'start execution : {outdir}')
