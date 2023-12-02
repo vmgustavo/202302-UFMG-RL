@@ -23,6 +23,7 @@ model_params:
   tau: 0.005  # update rate of the target network
   lr: 1e-4  # learning rate of the ``AdamW`` optimizer
   memory_size: 10000  # replay memory size
+  n_actions_discrete: 50 # Even number please!
 
 interactive:
   plot: false
