@@ -103,7 +103,7 @@ def main():
     GAMMA = 0.99  # discount factor as mentioned in the previous section
     EPS_START = 0.9  # starting value of epsilon
     EPS_END = 0.05  # final value of epsilon
-    EPS_DECAY = 1000  # final value of epsilon
+    EPS_DECAY = 1000  # rate of exponential decay of epsilon, higher means a slower decay
     TAU = 0.005  # update rate of the target network
     LR = 1e-4  # learning rate of the ``AdamW`` optimizer
     MEMORY_SIZE = 10000  # replay memory size
