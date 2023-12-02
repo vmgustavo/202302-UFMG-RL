@@ -207,17 +207,27 @@ def main(cfg: DictConfig):
                 episode_durations.append(t + 1)
                 rewards_episodes.append(np.sum(rewards_iterations))
                 break
+        else:
+            eps_threshold = None
 
         logger.debug(
             f'episode {i_episode}'
-            + f' : sum 50 episodes reward {sum(rewards_episodes[-50:-1]):.02f}'
+            + f' : sum 50 rewards {sum(rewards_episodes[-50:-1]):.02f}'
+            + f' : mean 50 times {np.mean(episode_durations[-50:-1]):.02f}'
+            + f' : eps {eps_threshold:.02f}'
         )
 
         if cfg.interactive.plot and (i_episode % cfg.interactive.step) == 0:
-            print(f'current episode total duration: {np.mean(episode_durations[-50:])}')
+            n_points = 300
             plt.clf()
-            plt.plot(range(i_episode + 1), episode_durations)
-            plt.plot(range(i_episode + 1), pd.Series(episode_durations).rolling(window=50).mean())
+            plt.plot(
+                range(min(i_episode + 1, n_points)),
+                episode_durations[-n_points:]
+            )
+            plt.plot(
+                range(min(i_episode + 1, n_points)),
+                pd.Series(episode_durations).rolling(window=50).mean().iloc[-n_points:]
+            )
             plt.show()
             plt.pause(1E-1)
 
