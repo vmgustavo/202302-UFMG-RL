@@ -1,9 +1,20 @@
 import math
+import json
 import random
+import logging
+import hashlib
+from pathlib import Path
 from itertools import count
 from collections import namedtuple, deque
 
+import numpy as np
+import pandas as pd
+
 import matplotlib.pyplot as plt
+
+import hydra
+from hydra.core.hydra_config import HydraConfig
+from omegaconf import OmegaConf, DictConfig
 
 import gymnasium as gym
 
@@ -98,15 +109,14 @@ def optimize_model(policy_net, target_net, memory, optimizer, batch_size, gamma)
     optimizer.step()
 
 
-def main():
-    BATCH_SIZE = 128  # number of transitions sampled from the replay buffer
-    GAMMA = 0.99  # discount factor as mentioned in the previous section
-    EPS_START = 0.9  # starting value of epsilon
-    EPS_END = 0.05  # final value of epsilon
-    EPS_DECAY = 1000  # rate of exponential decay of epsilon, higher means a slower decay
-    TAU = 0.005  # update rate of the target network
-    LR = 1e-4  # learning rate of the ``AdamW`` optimizer
-    MEMORY_SIZE = 10000  # replay memory size
+@hydra.main(version_base=None, config_path='conf', config_name='cart-pole')
+def main(cfg: DictConfig):
+    cbytes = json.dumps(OmegaConf.to_container(cfg, resolve=True)).encode()
+    chash = hashlib.sha256(cbytes).hexdigest()
+    logger = logging.getLogger(chash[:7])
+
+    outdir = Path(HydraConfig.get().runtime.output_dir)
+    logger.info(f'start execution : {outdir}')
 
     env = gym.make('CartPole-v1')
     n_actions = 2
@@ -118,22 +128,29 @@ def main():
     target_net = DQN(n_observations, n_actions).to(device)
     target_net.load_state_dict(policy_net.state_dict())
 
-    optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-    memory = ReplayMemory(MEMORY_SIZE)
+    optimizer = optim.AdamW(policy_net.parameters(), lr=cfg.model_params.lr, amsgrad=True)
+    memory = ReplayMemory(cfg.model_params.memory_size)
 
     steps_done = 0
-    n_episodes = 200
     episode_durations = list()
 
-    for i_episode in range(n_episodes):
+    if cfg.interactive.plot:
+        plt.ion()
+        plt.figure(figsize=(12, 5))
+
+    for i_episode in range(cfg.n_episodes):
         # Initialize the environment and get it's state
         state, info = env.reset()
         state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-        for t in count():
 
+        for t in count():
             # Select action
             sample = random.random()
-            eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
+            eps_threshold = (
+                cfg.model_params.eps_end
+                + (cfg.model_params.eps_start - cfg.model_params.eps_end)
+                * math.exp(-1. * steps_done / cfg.model_params.eps_decay)
+            )
             steps_done += 1
             if sample > eps_threshold:
                 with torch.no_grad():
@@ -163,8 +180,8 @@ def main():
                 target_net=target_net,
                 memory=memory,
                 optimizer=optimizer,
-                batch_size=BATCH_SIZE,
-                gamma=GAMMA,
+                batch_size=cfg.model_params.batch_size,
+                gamma=cfg.model_params.gamma,
             )
 
             # Soft update of the target network's weights
@@ -172,19 +189,42 @@ def main():
             target_net_state_dict = target_net.state_dict()
             policy_net_state_dict = policy_net.state_dict()
             for key in policy_net_state_dict:
-                target_net_state_dict[key] = policy_net_state_dict[key] * TAU + target_net_state_dict[key] * (1 - TAU)
+                target_net_state_dict[key] = (
+                    policy_net_state_dict[key]
+                    * cfg.model_params.tau
+                    + target_net_state_dict[key]
+                    * (1 - cfg.model_params.tau)
+                )
             target_net.load_state_dict(target_net_state_dict)
 
             if terminated or truncated:
-                if i_episode % 50 == 0:
-                    print(f'current episode: {i_episode}')
-                    print(f'current episode total duration: {t + 1}')
                 episode_durations.append(t + 1)
-                # plot_durations()
                 break
+        else:
+            eps_threshold = None
 
-    plt.plot(range(n_episodes), episode_durations)
-    plt.show()
+        logger.debug(
+            f'episode {i_episode}'
+            + f' : mean 50 times {np.mean(episode_durations[-50:-1]):.02f}'
+            + f' : eps {eps_threshold:.02f}'
+        )
+
+        if cfg.interactive.plot and (i_episode % cfg.interactive.step) == 0:
+            n_points = 300
+            plt.clf()
+            plt.plot(
+                range(min(i_episode + 1, n_points)),
+                episode_durations[-n_points:]
+            )
+            plt.plot(
+                range(min(i_episode + 1, n_points)),
+                pd.Series(episode_durations).rolling(window=50).mean().iloc[-n_points:]
+            )
+            plt.show()
+            plt.pause(1E-1)
+
+    with open(outdir / f'cartp__times.csv', 'w') as fout:
+        fout.writelines([f'{elem}\n' for elem in episode_durations])
 
 
 if __name__ == '__main__':
