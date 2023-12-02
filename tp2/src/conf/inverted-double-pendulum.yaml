@@ -12,7 +12,7 @@ hydra:
   sweep:
     dir: ../sweep/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
 
-n_episodes: 2000  # maximum number of episodes to execute
+n_episodes: 20000  # maximum number of episodes to execute
 
 model_params:
   batch_size: 128  # number of transitions sampled from the replay buffer
@@ -23,6 +23,7 @@ model_params:
   tau: 0.005  # update rate of the target network
   lr: 1e-4  # learning rate of the ``AdamW`` optimizer
   memory_size: 10000  # replay memory size
+  n_actions_discrete: 50 # Even number please!
 
 interactive:
   plot: true

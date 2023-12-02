@@ -113,6 +113,9 @@ def optimize_model(policy_net, target_net, memory, optimizer, batch_size, gamma)
 
 @hydra.main(version_base=None, config_path='conf', config_name='inverted-double-pendulum')
 def main(cfg: DictConfig):
+    # This helps debugging
+    # cfg = OmegaConf.load("./tp2/src/conf/inverted-double-pendulum.yaml")
+
     cbytes = json.dumps(OmegaConf.to_container(cfg, resolve=True)).encode()
     chash = hashlib.sha256(cbytes).hexdigest()
     logger = logging.getLogger(chash[:7])
@@ -121,7 +124,7 @@ def main(cfg: DictConfig):
     logger.info(f'start execution : {outdir}')
 
     env = gym.make('InvertedDoublePendulum-v4')
-    n_actions = 1
+    n_actions = cfg.model_params.n_actions_discrete
 
     state, info = env.reset()
     n_observations = len(state)
@@ -161,10 +164,12 @@ def main(cfg: DictConfig):
                 with torch.no_grad():
                     action = float(policy_net(state).max(1).indices.view(1, 1).item())
             else:
-                action = float(env.action_space.sample()[0])
+                # action = float(env.action_space.sample()[0])
+                action = random.randint(0, n_actions-1)
 
             # Act on environment
-            observation, reward, terminated, truncated, _ = env.step((action,))
+            effective_action = ((action + 1) - (n_actions/2)) / ((n_actions/2)) # Convert discrete action to continuous action
+            observation, reward, terminated, truncated, _ = env.step((effective_action,))
             reward = torch.tensor([reward], device=device)
             rewards_iterations.append(reward)
 
@@ -210,12 +215,13 @@ def main(cfg: DictConfig):
         else:
             eps_threshold = None
 
-        logger.debug(
-            f'episode {i_episode}'
-            + f' : sum 50 rewards {sum(rewards_episodes[-50:-1]):.02f}'
-            + f' : mean 50 times {np.mean(episode_durations[-50:-1]):.02f}'
-            + f' : eps {eps_threshold:.02f}'
-        )
+        if i_episode % 25 == 0:
+            logger.debug(
+                f'episode {i_episode}'
+                + f' : sum 50 rewards {sum(rewards_episodes[-50:-1]):.02f}'
+                + f' : mean 50 times {np.mean(episode_durations[-50:-1]):.02f}'
+                + f' : eps {eps_threshold:.02f}'
+            )
 
         if cfg.interactive.plot and (i_episode % cfg.interactive.step) == 0:
             n_points = 300
