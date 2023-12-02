@@ -132,13 +132,15 @@ def main(cfg: DictConfig):
     memory = ReplayMemory(cfg.model_params.memory_size)
 
     steps_done = 0
-    episode_durations = list()
+    episode_durations = [0]
 
     if cfg.interactive.plot:
         plt.ion()
         plt.figure(figsize=(12, 5))
 
-    for i_episode in range(cfg.n_episodes):
+    i_episode = 0
+    while np.mean(episode_durations[-50:]) < 450:
+        i_episode += 1
         # Initialize the environment and get it's state
         state, info = env.reset()
         state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
@@ -205,7 +207,7 @@ def main(cfg: DictConfig):
 
         logger.debug(
             f'episode {i_episode}'
-            + f' : mean 50 times {np.mean(episode_durations[-50:-1]):.02f}'
+            + f' : mean 50 times {np.mean(episode_durations[-50:]):.02f}'
             + f' : eps {eps_threshold:.02f}'
         )
 
@@ -213,12 +215,17 @@ def main(cfg: DictConfig):
             n_points = 300
             plt.clf()
             plt.plot(
-                range(min(i_episode + 1, n_points)),
+                range(min(i_episode, n_points) + 1),
                 episode_durations[-n_points:]
             )
             plt.plot(
-                range(min(i_episode + 1, n_points)),
-                pd.Series(episode_durations).rolling(window=50).mean().iloc[-n_points:]
+                range(min(i_episode, n_points) + 1),
+                (
+                    pd.Series(episode_durations)
+                    .rolling(window=50, min_periods=1)
+                    .mean()
+                    .iloc[-n_points:]
+                )
             )
             plt.show()
             plt.pause(1E-1)
