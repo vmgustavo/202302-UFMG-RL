@@ -126,8 +126,6 @@ def main():
     episode_durations = list()
 
     for i_episode in range(n_episodes):
-        print(f'current episode: {i_episode}')
-
         # Initialize the environment and get it's state
         state, info = env.reset()
         state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
@@ -178,7 +176,9 @@ def main():
             target_net.load_state_dict(target_net_state_dict)
 
             if terminated or truncated:
-                print(f'current episode total duration: {t + 1}')
+                if i_episode % 50 == 0:
+                    print(f'current episode: {i_episode}')
+                    print(f'current episode total duration: {t + 1}')
                 episode_durations.append(t + 1)
                 # plot_durations()
                 break
