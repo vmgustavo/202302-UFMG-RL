@@ -4,11 +4,9 @@ from itertools import count
 from collections import namedtuple, deque
 
 import numpy as np
+import pandas as pd
 
-import matplotlib
 import matplotlib.pyplot as plt
-
-from tqdm import tqdm
 
 import gymnasium as gym
 
@@ -72,7 +70,9 @@ def optimize_model(policy_net, target_net, memory, optimizer, batch_size, gamma)
     )
     non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
     state_batch = torch.cat(batch.state)
-    action_batch = torch.cat(batch.action)
+
+    action_tensor = [torch.tensor([[elem]], device=device, dtype=torch.long) for elem in batch.action]
+    action_batch = torch.cat(action_tensor)
     reward_batch = torch.cat(batch.reward)
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
@@ -108,7 +108,7 @@ def main():
     GAMMA = 0.99  # discount factor as mentioned in the previous section
     EPS_START = 0.9  # starting value of epsilon
     EPS_END = 0.05  # final value of epsilon
-    EPS_DECAY = 1000  # final value of epsilon
+    EPS_DECAY = 10000  # rate of exponential decay of epsilon, higher means a slower decay
     TAU = 0.005  # update rate of the target network
     LR = 1e-4  # learning rate of the ``AdamW`` optimizer
     MEMORY_SIZE = 10000  # replay memory size
@@ -127,11 +127,15 @@ def main():
     memory = ReplayMemory(MEMORY_SIZE)
 
     steps_done = 0
-    n_episodes = 20
+    n_episodes = 2000
     episode_durations = list()
 
+    plt.ion()
+    plt.figure(figsize=(12, 5))
+
     for i_episode in range(n_episodes):
-        print(f'current episode: {i_episode}')
+        if i_episode % 100 == 0:
+            print(f'current episode: {i_episode}')
 
         # Initialize the environment and get it's state
         state, info = env.reset()
@@ -183,13 +187,21 @@ def main():
             target_net.load_state_dict(target_net_state_dict)
 
             if terminated or truncated:
-                print(f'current episode total duration: {t + 1}')
                 episode_durations.append(t + 1)
+
+                if i_episode % 100 == 0:
+                    print(f'current episode total duration: {np.mean(episode_durations[-50:])}')
                 # plot_durations()
                 break
 
-    plt.plot(range(n_episodes), episode_durations)
-    plt.show()
+        if i_episode % 100 == 0:
+            plt.clf()
+            plt.plot(range(i_episode + 1), episode_durations)
+            plt.plot(range(i_episode + 1), pd.Series(episode_durations).rolling(window=50).mean())
+            plt.show()
+            plt.pause(1E-1)
+
+    plt.waitforbuttonpress()
 
 
 if __name__ == '__main__':
