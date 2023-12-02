@@ -118,7 +118,7 @@ def main(cfg: DictConfig):
     outdir = Path(HydraConfig.get().runtime.output_dir)
     logger.info(f'start execution : {outdir}')
 
-    env = gym.make('CartPole-v1')
+    env = gym.make('CartPole-v1', render_mode='human')
     n_actions = 2
 
     state, info = env.reset()

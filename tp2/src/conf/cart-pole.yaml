@@ -12,7 +12,7 @@ hydra:
   sweep:
     dir: ../sweep/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
 
-n_episodes: null  # maximum number of episodes to execute
+n_episodes: 501  # maximum number of episodes to execute
 
 model_params:
   batch_size: 128  # number of transitions sampled from the replay buffer
