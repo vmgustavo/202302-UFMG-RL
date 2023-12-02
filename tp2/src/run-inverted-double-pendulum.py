@@ -132,18 +132,19 @@ def main(cfg: DictConfig):
     steps_done = 0
     episode_durations = list()
 
-    plt.ion()
-    plt.figure(figsize=(12, 5))
+    if cfg.interactive.plot:
+        plt.ion()
+        plt.figure(figsize=(10, 10))
+        plt.title('Q-Table')
 
+    rewards_episodes = list()
     for i_episode in range(cfg.n_episodes):
-        if i_episode % 100 == 0:
-            print(f'current episode: {i_episode}')
-
         # Initialize the environment and get it's state
         state, info = env.reset()
         state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-        for t in count():
 
+        rewards_iterations = list()
+        for t in count():
             # Select action
             sample = random.random()
             eps_threshold = (
@@ -161,6 +162,7 @@ def main(cfg: DictConfig):
             # Act on environment
             observation, reward, terminated, truncated, _ = env.step((action,))
             reward = torch.tensor([reward], device=device)
+            rewards_iterations.append(reward)
 
             # Evaluate action return
             if terminated:
@@ -199,20 +201,28 @@ def main(cfg: DictConfig):
 
             if terminated or truncated:
                 episode_durations.append(t + 1)
-
-                if i_episode % 100 == 0:
-                    print(f'current episode total duration: {np.mean(episode_durations[-50:])}')
+                rewards_episodes.append(np.sum(rewards_iterations))
                 # plot_durations()
                 break
 
-        if i_episode % 100 == 0:
+        logger.debug(
+            f'episode {i_episode}'
+            + f' : sum 50 episodes reward {sum(rewards_episodes[-50:-1])}'
+        )
+
+        if cfg.interactive.plot and (i_episode % cfg.interactive.step) == 0:
+            print(f'current episode total duration: {np.mean(episode_durations[-50:])}')
             plt.clf()
             plt.plot(range(i_episode + 1), episode_durations)
             plt.plot(range(i_episode + 1), pd.Series(episode_durations).rolling(window=50).mean())
             plt.show()
             plt.pause(1E-1)
 
-    plt.waitforbuttonpress()
+    with open(outdir / f'dip__rewards.csv', 'w') as fout:
+        fout.writelines([f'{elem}\n' for elem in rewards_episodes])
+
+    with open(outdir / f'dip__times.csv', 'w') as fout:
+        fout.writelines([f'{elem}\n' for elem in episode_durations])
 
 
 if __name__ == '__main__':

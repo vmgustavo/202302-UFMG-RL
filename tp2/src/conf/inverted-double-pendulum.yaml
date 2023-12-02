@@ -1,5 +1,5 @@
 hydra:
-  verbose: false
+  verbose: true
   job_logging:
     formatters:
       simple:
@@ -25,5 +25,5 @@ model_params:
   memory_size: 10000  # replay memory size
 
 interactive:
-  plot: False
+  plot: true
   step: 50
