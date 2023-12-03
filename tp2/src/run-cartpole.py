@@ -118,7 +118,7 @@ def main(cfg: DictConfig):
     outdir = Path(HydraConfig.get().runtime.output_dir)
     logger.info(f'start execution : {outdir}')
 
-    env = gym.make('CartPole-v1', render_mode='human')
+    env = gym.make('CartPole-v1')
     n_actions = 2
 
     state, info = env.reset()
@@ -139,7 +139,7 @@ def main(cfg: DictConfig):
         plt.figure(figsize=(12, 5))
 
     i_episode = 0
-    while (i_episode < cfg.n_episodes) and (np.mean(episode_durations[-50:]) < 450):
+    while i_episode < cfg.n_episodes:
         i_episode += 1
         # Initialize the environment and get it's state
         state, info = env.reset()
