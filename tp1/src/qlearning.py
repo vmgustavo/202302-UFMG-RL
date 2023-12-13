@@ -4,7 +4,6 @@ from pathlib import Path
 from operator import mul
 from functools import reduce
 
-from hydra.core.hydra_config import HydraConfig
 import numpy as np
 from numba import njit
 import matplotlib.pyplot as plt
@@ -28,19 +27,11 @@ def qlearn_update(currvalue, reward_value, gamma, alpha, next_best_action):
     return value_new
 
 
-# @njit
-# def qlearn_update(currvalue: float, reward_value: float, gamma: float, alpha: float, next_best_action: float):
-#     return (
-#         (1 - alpha) * currvalue
-#         + alpha * (reward_value + gamma * next_best_action)
-#     )
-
-
 class BlackjackQTable:
     table_: np.ndarray
     ocurrences_: np.ndarray
 
-    def __init__(self, alpha: float, gamma: float, shape: int):
+    def __init__(self, alpha: float, gamma: float, shape: tuple[int, int, int, int]):
         self.logger = logging.getLogger('BlackjackQTable')
 
         self.alpha = alpha  # learning rate
@@ -82,31 +73,25 @@ class BlackjackQTable:
         self.logger.debug(f'current state: {c_state}')
         self.logger.debug(f'action value: {self.table_[n_state.CSUM, c_state.CARDV, c_state.ACE, :]}')
 
-    def dump(self, path: [str, Path] = 'BlackjackQTable.pickle'):
+    def dump(self, path: [str, Path]):
         with open(path, 'wb') as f:
             pickle.dump(self, f)
 
-    def plot(self, action: str = "hit", savefig_path: str = False):
+    def plot(self, action: Action, savefig_path: str = None):
         plt.gca()
-        if action == "hit":
-            plt.imshow(self.table_[:, :, 0, Action.HIT.value])
-        elif action == "stick":
-            plt.imshow(self.table_[:, :, 0, Action.STICK.value])
+        plt.imshow(self.table_[:, :, 0, action.value])
         plt.ylabel('Current Sum')
         plt.xlabel('Card Value')
 
-        if not savefig_path:
+        if savefig_path is None:
             plt.show()
-            plt.pause(.1)
+            plt.pause(1e-3)
         else:
             plt.savefig(savefig_path)
 
     @staticmethod
-    def load(path: str = 'BlackjackQTable.pickle'):
+    def load(path: str):
         with open(path, 'rb') as f:
             obj = pickle.load(f)
 
         return obj
-
-if __name__=="__main__":
-    pass

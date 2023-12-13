@@ -1,0 +1,29 @@
+hydra:
+  verbose: true
+  job_logging:
+    formatters:
+      simple:
+        format: '%(asctime)s | %(levelname)-8s | %(name)s : %(message)s'
+        datefmt: '%Y-%m-%d %H:%M:%S'
+    root:
+      handlers: [console]
+  run:
+    dir: ../outputs/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
+  sweep:
+    dir: ../sweep/n_episodes_${n_episodes}/${now:%Y%m%dT%H%M%S}/
+
+n_episodes: 501  # maximum number of episodes to execute
+
+model_params:
+  batch_size: 128  # number of transitions sampled from the replay buffer
+  gamma: 0.99  # discount factor as mentioned in the previous section
+  eps_start: 0.9  # starting value of epsilon
+  eps_end: 0.05  # final value of epsilon
+  eps_decay: 1000  # rate of exponential decay of epsilon, higher means a slower decay
+  tau: 0.005  # update rate of the target network
+  lr: 1e-4  # learning rate of the ``AdamW`` optimizer
+  memory_size: 10000  # replay memory size
+
+interactive:
+  plot: true
+  step: 50

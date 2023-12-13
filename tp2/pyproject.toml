@@ -10,8 +10,9 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "~3.10"
-gymnasium = {extras = ["accept-rom-license", "atari", "toy-text"], version = "^0.29.1"}
-matplotlib = "^3.8.0"
+gymnasium = {extras = ["mujoco", "classic-control"], version = "^0.29.1"}
+matplotlib = "^3.8.2"
+torch = "^2.1.1"
 numpy = "<1.26"
 seaborn = "^0.13.0"
 numba = "^0.58.0"
@@ -22,7 +23,7 @@ hydra-joblib-launcher = "^1.2.0"
 scienceplots = "^2.1.0"
 pyyaml = "^6.0.1"
 tqdm = "^4.66.1"
-
+mujoco = "<3"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.25.2"
